@@ -5,22 +5,8 @@ pub type Score = i32;
 
 pub type Scoring = fn(b: &CombinedBoard) -> Score;
 
-const FOREST_GROUP: [Scoring; 4] = [sentinel_wood, treetower, greenbough, stoneside_forest];
-const WATER_GROUP: [Scoring; 4] = [
-    canal_lake,
-    the_golden_granary,
-    mage_valley,
-    shoreside_expanse,
-];
-const VILLAGE_GROUP: [Scoring; 4] = [wildholds, greengold_plains, great_city, shieldgate];
-const DISTANCE_GROUP: [Scoring; 4] = [boarderlands, the_broken_road, lost_barony, the_cauldrons];
-
-pub fn scoring_groups() -> Vec<[Scoring; 4]> {
-    vec![FOREST_GROUP, WATER_GROUP, VILLAGE_GROUP, DISTANCE_GROUP]
-}
-
-pub fn mountain_gold(b: &CombinedBoard) -> u32 {
-    b.mountain().touches_not(b.empty()).count_cells() as u32
+pub fn mountain_gold(b: &CombinedBoard) -> Score {
+    b.mountain().touches_not(b.empty()).count_cells()
 }
 
 pub fn monsters(b: &CombinedBoard) -> Score {
@@ -154,7 +140,7 @@ pub fn shieldgate(b: &CombinedBoard) -> Score {
     max2
 }
 
-pub fn boarderlands(b: &CombinedBoard) -> Score {
+pub fn borderlands(b: &CombinedBoard) -> Score {
     let filled = b.filled();
     let mut score = 0;
 

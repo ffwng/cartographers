@@ -45,7 +45,7 @@ fn connect_engineio(req: impl IntoClientRequest) -> Result<WebSocket<impl Read +
 
 fn connect_socketio(socket: &mut impl SocketIOExt) -> Result<()> {
     // send connect request
-    socket.write_socketio_packet("0".into())?;
+    socket.write_socketio_packet("0")?;
 
     // expect connect response
     match socket.read_socketio_packet()? {
@@ -66,7 +66,7 @@ pub struct SocketIOPacket(char, String);
 pub trait SocketIOExt {
     fn read_raw_message(&mut self) -> Result<String>;
 
-    fn write_raw_message(&mut self, msg: String) -> Result<()>;
+    fn write_raw_message(&mut self, msg: impl Into<String>) -> Result<()>;
 
     fn read_engineio_packet(&mut self) -> Result<EngineIOPacket> {
         let mut msg = self.read_raw_message()?;
@@ -78,7 +78,7 @@ pub trait SocketIOExt {
         Ok(EngineIOPacket(t, msg))
     }
 
-    fn write_engineio_packet(&mut self, msg: String) -> Result<()> {
+    fn write_engineio_packet(&mut self, msg: impl Into<String>) -> Result<()> {
         self.write_raw_message(msg)
     }
 
@@ -88,7 +88,7 @@ pub trait SocketIOExt {
             match t {
                 // ping
                 '2' => {
-                    self.write_engineio_packet("3".into())?;
+                    self.write_engineio_packet("3")?;
                 }
                 // message
                 '4' => {
@@ -106,8 +106,9 @@ pub trait SocketIOExt {
         }
     }
 
-    fn write_socketio_packet(&mut self, mut msg: String) -> Result<()> {
+    fn write_socketio_packet(&mut self, msg: impl Into<String>) -> Result<()> {
         // transform into an engine.io message packet
+        let mut msg = msg.into();
         msg.insert(0, '4');
         self.write_engineio_packet(msg)
     }
@@ -145,12 +146,12 @@ pub trait SocketIOExt {
         }
     }
 
-    fn write_event(&mut self, event: String, data: String) -> Result<()> {
-        let msg = format!("2{}", serde_json::to_string(&[event, data])?);
+    fn write_event(&mut self, event: impl Into<String>, data: impl Into<String>) -> Result<()> {
+        let msg = format!("2{}", serde_json::to_string(&[event.into(), data.into()])?);
         self.write_socketio_packet(msg)
     }
 
-    fn write_json_event(&mut self, event: String, data: serde_json::Value) -> Result<()> {
+    fn write_json_event(&mut self, event: impl Into<String>, data: &serde_json::Value) -> Result<()> {
         self.write_event(event, data.to_string())
     }
 }
@@ -169,7 +170,7 @@ where
         }
     }
 
-    fn write_raw_message(&mut self, msg: String) -> Result<()> {
-        Ok(self.write_message(Message::Text(msg))?)
+    fn write_raw_message(&mut self, msg: impl Into<String>) -> Result<()> {
+        Ok(self.write_message(Message::Text(msg.into()))?)
     }
 }

@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 tungstenite = "0.16.0"
 serde_json = "1.0.73"
+enum-map = "1.1.1"

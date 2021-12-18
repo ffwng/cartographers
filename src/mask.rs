@@ -3,7 +3,7 @@ use std::{
     ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not},
 };
 
-const FULL: u128 = (1 << (Mask::SIZE * Mask::SIZE)) - 1;
+const FULL: u128 = (1 << Mask::CELL_COUNT) - 1;
 
 const fn row(i: u8) -> u128 {
     assert!(i < Mask::SIZE);
@@ -31,13 +31,14 @@ pub struct Mask(u128);
 
 impl Mask {
     pub const SIZE: u8 = 11;
-
-    pub const fn from_bits(bits: u128) -> Self {
-        Self(bits)
-    }
+    pub const CELL_COUNT: u8 = Self::SIZE * Self::SIZE;
 
     pub const fn to_bits(self) -> u128 {
         self.0
+    }
+
+    pub const fn from_bits(bits: u128) -> Self {
+        Self(bits)
     }
 
     pub const fn empty() -> Self {
@@ -46,6 +47,11 @@ impl Mask {
 
     pub const fn full() -> Self {
         Self(FULL)
+    }
+
+    pub const fn cell_idx(idx: u8) -> Self {
+        assert!(idx < Self::CELL_COUNT);
+        Self(1 << idx)
     }
 
     pub const fn cell(x: u8, y: u8) -> Self {
@@ -65,6 +71,19 @@ impl Mask {
 
     pub const fn border() -> Self {
         Self(row(0) | row(Self::SIZE - 1) | column(0) | column(Self::SIZE - 1))
+    }
+
+    pub const fn from_cells(cells: &[u8]) -> Self {
+        assert!(cells.len() < Self::CELL_COUNT as usize);
+        
+        let mut res = Self::empty();
+        let mut idx = 0;
+        while idx < cells.len() {
+            res.0 |= Self::cell_idx(idx as u8).0;
+            idx += 1;
+        }
+
+        res
     }
 
     pub const fn shift_up(self) -> Self {
@@ -88,7 +107,7 @@ impl Mask {
     }
 
     pub const fn clusters(self) -> Clusters {
-        Clusters(self)
+        Clusters(self.0)
     }
 
     pub const fn cells(self) -> Cells {
@@ -162,6 +181,8 @@ impl Not for Mask {
 
 impl Debug for Mask {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f)?;
+
         for y in 0..Self::SIZE {
             for x in 0..Self::SIZE {
                 let s = if self.contains(Mask::cell(x, y)) { "o" } else { "." };
@@ -175,24 +196,24 @@ impl Debug for Mask {
     }
 }
 
-pub struct Clusters(Mask);
+pub struct Clusters(u128);
 
 impl Iterator for Clusters {
     type Item = Mask;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.0.is_empty() {
+        if Mask(self.0).is_empty() {
             return None;
         }
 
         // start the region with any cell, x & (-x) isolates the lowest set bit
-        let mut cluster = Mask(self.0.to_bits() & self.0.to_bits().wrapping_neg());
+        let mut cluster = self.0 & self.0.wrapping_neg();
         loop {
-            let next = cluster | (cluster.neighbors() & self.0);
+            let next = cluster | (Mask(cluster).neighbors().0 & self.0);
             if next == cluster {
                 // there are no additional neighbors also belonging to same the cluster
-                self.0 &= !cluster;
-                return Some(cluster);
+                self.0 ^= cluster;
+                return Some(Mask(cluster));
             }
 
             cluster = next;
