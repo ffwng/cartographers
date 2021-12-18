@@ -1,10 +1,20 @@
-mod mask;
+use socketio::SocketIOExt;
+
 mod board;
+mod mask;
+mod socketio;
 mod scoring;
 
-use mask::Mask;
-
 fn main() {
-    let m = Mask::full() & !Mask::row(8) & !Mask::column(4) & !Mask::cell(1, 2);
-    println!("{:?}", m);
+    let mut socket = socketio::connect("ws://localhost:3000/socket.io/?EIO=4&transport=websocket")
+        .expect("cannot connect");
+
+    socket
+        .write_event("enterGame".into(), "Test".into())
+        .expect("failed to send message");
+
+    loop {
+        let msg = socket.read_event().expect("failed to read message");
+        println!("{:?}", msg);
+    }
 }
