@@ -2,7 +2,7 @@ use enum_map::{enum_map, Enum, EnumMap};
 
 use crate::mask::Mask;
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Enum)]
 pub enum Season {
     Spring,
     Summer,
@@ -11,7 +11,7 @@ pub enum Season {
 }
 
 impl Season {
-    pub fn time(&self) -> u32 {
+    pub fn time(&self) -> u16 {
         match self {
             Self::Spring | Self::Summer => 8,
             Self::Fall => 7,
@@ -38,7 +38,7 @@ pub enum PlayerTerrain {
     Monster,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct PlayerBoard(EnumMap<PlayerTerrain, Mask>);
 
 impl PlayerBoard {
@@ -54,5 +54,14 @@ impl PlayerBoard {
         }
 
         result
+    }
+
+    pub fn place_cells(mut self, terrain: PlayerTerrain, cells: Mask) -> Self {
+        self.0[terrain] |= cells;
+        self
+    }
+
+    pub fn get_cells(&self, terrain: PlayerTerrain) -> Mask {
+        self.0[terrain]
     }
 }

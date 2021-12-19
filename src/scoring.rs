@@ -1,27 +1,50 @@
-use crate::board::CombinedBoard;
-use crate::mask::Mask;
+use crate::{mask::Mask, search::GameState};
 
-pub type Score = i32;
+pub trait Board {
+    fn filled(&self) -> Mask;
 
-pub type Scoring = fn(b: &CombinedBoard) -> Score;
+    fn empty(&self) -> Mask {
+        !self.filled()
+    }
 
-pub fn mountain_gold(b: &CombinedBoard) -> Score {
+    fn forest(&self) -> Mask;
+
+    fn village(&self) -> Mask;
+
+    fn farm(&self) -> Mask;
+
+    fn water(&self) -> Mask;
+
+    fn monster(&self) -> Mask;
+
+    fn mountain(&self) -> Mask;
+
+    fn wasteland(&self) -> Mask;
+
+    fn ruin(&self) -> Mask;
+}
+
+pub type Score = i16;
+
+pub type Scoring = fn(b: &GameState) -> Score;
+
+pub fn mountain_gold(b: &GameState) -> Score {
     b.mountain().touches_not(b.empty()).count_cells()
 }
 
-pub fn monsters(b: &CombinedBoard) -> Score {
+pub fn monsters(b: &GameState) -> Score {
     -b.empty().touches(b.monster()).count_cells()
 }
 
-pub fn sentinel_wood(b: &CombinedBoard) -> Score {
+pub fn sentinel_wood(b: &GameState) -> Score {
     (b.forest() & Mask::border()).count_cells()
 }
 
-pub fn treetower(b: &CombinedBoard) -> Score {
+pub fn treetower(b: &GameState) -> Score {
     b.forest().touches_not(b.empty()).count_cells()
 }
 
-pub fn greenbough(b: &CombinedBoard) -> Score {
+pub fn greenbough(b: &GameState) -> Score {
     let mut score = 0;
 
     for i in 0..Mask::SIZE {
@@ -37,7 +60,7 @@ pub fn greenbough(b: &CombinedBoard) -> Score {
     score
 }
 
-pub fn stoneside_forest(b: &CombinedBoard) -> Score {
+pub fn stoneside_forest(b: &GameState) -> Score {
     let mut found = Mask::empty();
 
     for forest in b.forest().clusters() {
@@ -50,19 +73,19 @@ pub fn stoneside_forest(b: &CombinedBoard) -> Score {
     found.count_cells() * 3
 }
 
-pub fn canal_lake(b: &CombinedBoard) -> Score {
+pub fn canal_lake(b: &GameState) -> Score {
     b.water().touches(b.farm()).count_cells() + b.farm().touches(b.water()).count_cells()
 }
 
-pub fn the_golden_granary(b: &CombinedBoard) -> Score {
+pub fn the_golden_granary(b: &GameState) -> Score {
     b.water().touches(b.ruin()).count_cells() + (b.farm() & b.ruin()).count_cells() * 3
 }
 
-pub fn mage_valley(b: &CombinedBoard) -> Score {
+pub fn mage_valley(b: &GameState) -> Score {
     b.water().touches(b.mountain()).count_cells() * 2 + b.farm().touches(b.mountain()).count_cells()
 }
 
-pub fn shoreside_expanse(b: &CombinedBoard) -> Score {
+pub fn shoreside_expanse(b: &GameState) -> Score {
     let mut score = 0;
 
     let m = b.water().neighbors() | Mask::border();
@@ -82,7 +105,7 @@ pub fn shoreside_expanse(b: &CombinedBoard) -> Score {
     score
 }
 
-pub fn wildholds(b: &CombinedBoard) -> Score {
+pub fn wildholds(b: &GameState) -> Score {
     b.village()
         .clusters()
         .filter(|region| region.count_cells() >= 6)
@@ -90,7 +113,7 @@ pub fn wildholds(b: &CombinedBoard) -> Score {
         * 8
 }
 
-pub fn greengold_plains(b: &CombinedBoard) -> Score {
+pub fn greengold_plains(b: &GameState) -> Score {
     let neighbors = [
         b.forest().neighbors(),
         b.farm().neighbors(),
@@ -113,7 +136,7 @@ pub fn greengold_plains(b: &CombinedBoard) -> Score {
     score
 }
 
-pub fn great_city(b: &CombinedBoard) -> Score {
+pub fn great_city(b: &GameState) -> Score {
     let m = b.mountain().neighbors();
     b.village()
         .clusters()
@@ -123,7 +146,7 @@ pub fn great_city(b: &CombinedBoard) -> Score {
         .unwrap_or(0)
 }
 
-pub fn shieldgate(b: &CombinedBoard) -> Score {
+pub fn shieldgate(b: &GameState) -> Score {
     let mut max1 = 0;
     let mut max2 = 0;
 
@@ -140,7 +163,7 @@ pub fn shieldgate(b: &CombinedBoard) -> Score {
     max2
 }
 
-pub fn borderlands(b: &CombinedBoard) -> Score {
+pub fn borderlands(b: &GameState) -> Score {
     let filled = b.filled();
     let mut score = 0;
 
@@ -157,7 +180,7 @@ pub fn borderlands(b: &CombinedBoard) -> Score {
     score
 }
 
-pub fn the_broken_road(b: &CombinedBoard) -> Score {
+pub fn the_broken_road(b: &GameState) -> Score {
     let filled = b.filled();
     let mut diagonal = Mask::empty();
     let mut cell = Mask::cell(0, Mask::SIZE - 1);
@@ -176,7 +199,7 @@ pub fn the_broken_road(b: &CombinedBoard) -> Score {
     score
 }
 
-pub fn lost_barony(b: &CombinedBoard) -> Score {
+pub fn lost_barony(b: &GameState) -> Score {
     let filled = b.filled();
     // try every square from SIZExSIZE to 2x2
     let mut square = Mask::full();
@@ -198,6 +221,6 @@ pub fn lost_barony(b: &CombinedBoard) -> Score {
     }
 }
 
-pub fn the_cauldrons(b: &CombinedBoard) -> Score {
+pub fn the_cauldrons(b: &GameState) -> Score {
     b.empty().touches_not(b.empty()).count_cells()
 }

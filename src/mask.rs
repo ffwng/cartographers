@@ -33,14 +33,6 @@ impl Mask {
     pub const SIZE: u8 = 11;
     pub const CELL_COUNT: u8 = Self::SIZE * Self::SIZE;
 
-    pub const fn to_bits(self) -> u128 {
-        self.0
-    }
-
-    pub const fn from_bits(bits: u128) -> Self {
-        Self(bits)
-    }
-
     pub const fn empty() -> Self {
         Self(0)
     }
@@ -75,11 +67,11 @@ impl Mask {
 
     pub const fn from_cells(cells: &[u8]) -> Self {
         assert!(cells.len() < Self::CELL_COUNT as usize);
-        
+
         let mut res = Self::empty();
         let mut idx = 0;
         while idx < cells.len() {
-            res.0 |= Self::cell_idx(idx as u8).0;
+            res.0 |= Self::cell_idx(cells[idx]).0;
             idx += 1;
         }
 
@@ -138,8 +130,8 @@ impl Mask {
         !self.is_empty()
     }
 
-    pub const fn count_cells(self) -> i32 {
-        self.0.count_ones() as i32
+    pub const fn count_cells(self) -> i16 {
+        self.0.count_ones() as i16
     }
 }
 
@@ -185,10 +177,14 @@ impl Debug for Mask {
 
         for y in 0..Self::SIZE {
             for x in 0..Self::SIZE {
-                let s = if self.contains(Mask::cell(x, y)) { "o" } else { "." };
+                let s = if self.contains(Mask::cell(x, y)) {
+                    "o"
+                } else {
+                    "."
+                };
                 write!(f, "{}", s)?;
             }
-            
+
             writeln!(f)?;
         }
 
@@ -255,7 +251,7 @@ impl SubMasks {
         Self {
             mask,
             next_pattern: pattern,
-            next_line
+            next_line,
         }
     }
 
@@ -273,15 +269,16 @@ impl Iterator for SubMasks {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.next_pattern.is_empty() {
+            let m = self.next_pattern;
+            if m.is_empty() {
                 return None;
             }
 
-            if self.mask.contains(self.next_pattern) {
-                return Some(self.next_pattern);
-            }
-
             self.shift_pattern();
+
+            if self.mask.contains(m) {
+                return Some(m);
+            }
         }
     }
 }

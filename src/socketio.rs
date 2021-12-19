@@ -14,7 +14,7 @@ pub enum Error {
     Websocket(tungstenite::Error),
     EngineIO(String),
     SocketIO(String),
-    JSON(serde_json::Error),
+    Json(serde_json::Error),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -27,7 +27,7 @@ impl From<tungstenite::Error> for Error {
 
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Self {
-        Self::JSON(err)
+        Self::Json(err)
     }
 }
 
@@ -73,7 +73,7 @@ pub trait SocketIOExt {
         let t = msg
             .drain(0..1)
             .next()
-            .ok_or(Error::EngineIO("invalid package format".into()))?;
+            .ok_or_else(|| Error::EngineIO("invalid package format".into()))?;
 
         Ok(EngineIOPacket(t, msg))
     }
@@ -95,7 +95,7 @@ pub trait SocketIOExt {
                     let t = msg
                         .drain(0..1)
                         .next()
-                        .ok_or(Error::SocketIO("invalid package format".into()))?;
+                        .ok_or_else(|| Error::SocketIO("invalid package format".into()))?;
                     return Ok(SocketIOPacket(t, msg));
                 }
                 // noop
@@ -114,11 +114,11 @@ pub trait SocketIOExt {
     }
 
     fn read_event(&mut self) -> Result<(String, Option<serde_json::Value>)> {
-        let payload = loop {
+        let payload = {
             let SocketIOPacket(t, msg) = self.read_socketio_packet()?;
             match t {
                 // event
-                '2' => break msg,
+                '2' => msg,
                 // other
                 _ => return Err(Error::SocketIO(format!("unexpected packet of type {}", t))),
             }
@@ -142,17 +142,27 @@ pub trait SocketIOExt {
         if e == event {
             Ok(data)
         } else {
-            Err(Error::SocketIO(format!("expected event type {}, got {}", event, e)))
+            Err(Error::SocketIO(format!(
+                "expected event type {}, got {}",
+                event, e
+            )))
         }
     }
 
     fn write_event(&mut self, event: impl Into<String>, data: impl Into<String>) -> Result<()> {
-        let msg = format!("2{}", serde_json::to_string(&[event.into(), data.into()])?);
-        self.write_socketio_packet(msg)
+        self.write_json_event(event, &serde_json::Value::String(data.into()))
     }
 
-    fn write_json_event(&mut self, event: impl Into<String>, data: &serde_json::Value) -> Result<()> {
-        self.write_event(event, data.to_string())
+    fn write_json_event(
+        &mut self,
+        event: impl Into<String>,
+        data: &serde_json::Value,
+    ) -> Result<()> {
+        let msg = format!(
+            "2{}",
+            serde_json::to_string(&[&serde_json::Value::String(event.into()), data])?
+        );
+        self.write_socketio_packet(msg)
     }
 }
 

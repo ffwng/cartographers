@@ -11,9 +11,11 @@ pub enum Message {
     NewDegrees([Scoring; 4]),
     NewSeason(Season),
     NewTurn {
+        player_id: String,
         board: PlayerBoard,
         drawn_cards: Vec<String>,
     },
+    FinalScoring(Value),
 }
 
 impl Debug for Message {
@@ -21,11 +23,17 @@ impl Debug for Message {
         match self {
             Self::NewDegrees(_) => f.debug_tuple("NewDegrees").finish(),
             Self::NewSeason(season) => f.debug_tuple("NewSeason").field(season).finish(),
-            Self::NewTurn { board, drawn_cards } => f
+            Self::NewTurn {
+                player_id,
+                board,
+                drawn_cards,
+            } => f
                 .debug_struct("NewTurn")
+                .field("player_id", player_id)
                 .field("board", board)
                 .field("drawn_cards", drawn_cards)
                 .finish(),
+            Self::FinalScoring(value) => f.debug_tuple("FinalScoring").field(value).finish(),
         }
     }
 }
@@ -45,17 +53,27 @@ impl Message {
             "newSeason" => Some(Self::NewSeason(Self::parse_season(data))),
             "newTurn" => {
                 let data = data.as_object().expect("expected a turn object");
+
+                let player_id = data["playerId"]
+                    .as_str()
+                    .expect("expected a turn player id")
+                    .to_string();
+
                 let board = Self::parse_board(&data["fields"]);
 
                 let mut drawn_cards: Vec<_> = data["usedCards"]
                     .as_array()
                     .expect("expected an array of cards")
                     .iter()
-                    .map(|c| Self::parse_card(c))
+                    .map(Self::parse_card)
                     .collect();
                 drawn_cards.push(Self::parse_card(&data["exploreCard"]));
 
-                Some(Self::NewTurn { board, drawn_cards })
+                Some(Self::NewTurn {
+                    player_id,
+                    board,
+                    drawn_cards,
+                })
             }
             "receivedTurn" => {
                 assert!(
@@ -64,7 +82,8 @@ impl Message {
                 );
                 None
             }
-            "playerJoinsOrLeaves" | "scoring" | "finalScoring" => None,
+            "finalScoring" => Some(Self::FinalScoring(data.clone())),
+            "playerJoinsOrLeaves" | "scoring" => None,
             _ => panic!("unexpected game event {}", event),
         }
     }
@@ -100,7 +119,7 @@ impl Message {
             .expect("expected a season name")
         {
             "spring" => Season::Spring,
-            "summer" => Season::Summer,
+            "sommer" => Season::Summer,
             "autmn" => Season::Fall,
             "winter" => Season::Winter,
             name => panic!("unknown season {}", name),

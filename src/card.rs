@@ -33,13 +33,18 @@ pub fn monster_cards() -> Vec<ExploreCard> {
 
 pub struct ExploreCard {
     name: String,
-    time: u32,
+    time: u16,
     terrains: Vec<PlayerTerrain>,
-    patterns: Vec<(Mask, u32)>,
+    patterns: Vec<(Mask, i16)>,
+    is_ambush: bool,
 }
 
 impl ExploreCard {
-    pub fn time(&self) -> u32 {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn time(&self) -> u16 {
         self.time
     }
 
@@ -47,8 +52,12 @@ impl ExploreCard {
         &self.terrains
     }
 
-    pub fn patterns(&self) -> &[(Mask, u32)] {
+    pub fn patterns(&self) -> &[(Mask, i16)] {
         &self.patterns
+    }
+
+    pub fn is_ambush(&self) -> bool {
+        self.is_ambush
     }
 }
 
@@ -152,6 +161,12 @@ pub fn splitterland() -> ExploreCard {
         .build()
 }
 
+pub fn splitterland_monster() -> ExploreCard {
+    ExploreCardBuilder::new("splitterland_monster", 0, &[Monster])
+        .with_pattern(&[b"x"], 0)
+        .build()
+}
+
 pub fn sumpf() -> ExploreCard {
     ExploreCardBuilder::new("sumpf", 2, &[Forest, Water])
         .with_pattern(&[b"x  ", b"xxx", b"x  "], 0)
@@ -175,17 +190,18 @@ pub fn weiler() -> ExploreCard {
 pub struct ExploreCardBuilder(ExploreCard);
 
 impl ExploreCardBuilder {
-    fn new(name: impl Into<String>, time: u32, terrains: &[PlayerTerrain]) -> Self {
+    fn new(name: impl Into<String>, time: u16, terrains: &[PlayerTerrain]) -> Self {
         assert!(!terrains.is_empty(), "there must be at least one terrain");
         Self(ExploreCard {
             name: name.into(),
             time,
             terrains: terrains.to_vec(),
             patterns: Vec::new(),
+            is_ambush: terrains[0] == PlayerTerrain::Monster,
         })
     }
 
-    fn with_pattern(mut self, pattern: &[&[u8]], gold: u32) -> Self {
+    fn with_pattern(mut self, pattern: &[&[u8]], gold: i16) -> Self {
         let p1 = Pattern::new(pattern);
         let p2 = p1.rotate90();
         let p3 = p2.rotate90();
