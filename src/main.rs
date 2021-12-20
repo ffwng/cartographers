@@ -2,6 +2,8 @@ use std::{collections::HashMap, time::Duration};
 
 use search::{find_best_move, GameState, InitialState};
 use socketio::SocketIOExt;
+use structopt::StructOpt;
+use tungstenite::http::Uri;
 
 use crate::{game::PlayerTerrain, protocol::Message};
 
@@ -14,17 +16,39 @@ mod scoring;
 mod search;
 mod socketio;
 
+#[derive(StructOpt)]
+struct Opt {
+    #[structopt(long)]
+    start: bool,
+
+    #[structopt(name = "URL")]
+    url: String,
+
+    #[structopt(name = "NAME")]
+    name: String,
+}
+
 fn main() {
-    let mut socket = socketio::connect("ws://localhost:3000/socket.io/?EIO=4&transport=websocket")
-        .expect("cannot connect");
+    let opt = Opt::from_args();
+
+    let uri = Uri::builder()
+        .scheme("ws")
+        .authority(opt.url)
+        .path_and_query("/socket.io/?EIO=4&transport=websocket")
+        .build()
+        .expect("failed to parse URL");
+
+    let mut socket = socketio::connect(uri).expect("cannot connect");
 
     socket
-        .write_event("enterGame", "Bot")
+        .write_event("enterGame", opt.name)
         .expect("failed to send message");
 
-    socket
-        .write_event("startGame", "")
-        .expect("failed to send message");
+    if opt.start {
+        socket
+            .write_event("startGame", "")
+            .expect("failed to send message");
+    }
 
     let initial_state = loop {
         let (event, data) = socket.read_event().expect("failed to read message");
