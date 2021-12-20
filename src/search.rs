@@ -31,9 +31,9 @@ pub struct InitialState {
 impl InitialState {
     pub fn new(degrees: [Scoring; 4]) -> Self {
         let scoring = enum_map! {
-            Season::Spring => [(degrees[0], 2.0), (degrees[1], 2.0), (degrees[2], 2.0), (degrees[3], 2.0), (gold, 4.0), (monsters, 4.0)],
-            Season::Summer => [(degrees[0], 1.0), (degrees[1], 1.0), (degrees[2], 2.0), (degrees[3], 2.0), (gold, 3.0), (monsters, 3.0)],
-            Season::Fall => [(degrees[0], 1.0), (zero, 0.0), (degrees[2], 1.0), (degrees[3], 2.0), (gold, 2.0), (monsters, 2.0)],
+            Season::Spring => [(degrees[0], 2.0), (degrees[1], 2.0), (degrees[2], 1.0), (degrees[3], 1.0), (gold, 4.0), (monsters, 4.0)],
+            Season::Summer => [(degrees[0], 0.5), (degrees[1], 1.0), (degrees[2], 2.0), (degrees[3], 1.0), (gold, 3.0), (monsters, 3.0)],
+            Season::Fall => [(degrees[0], 0.5), (zero, 0.0), (degrees[2], 1.0), (degrees[3], 2.0), (gold, 2.0), (monsters, 2.0)],
             Season::Winter => [(degrees[0], 1.0), (zero, 0.0), (zero, 0.0), (degrees[3], 1.0), (gold, 1.0), (monsters, 1.0)],
         };
 
